@@ -177,3 +177,13 @@ func createProduct (product *Product) error {
 
 	return err
 }
+
+func getProduct(id int) (Product, error) {
+	var product Product
+	err := db.QueryRow("SELECT id, name, price FROM products WHERE id = $1", id).Scan(&product.ID, &product.Name, &product.Price)
+	if err != nil {
+		log.Fatal("Error fetching product: ", err)
+		return Product{}, err
+	}
+	return product, err
+}
