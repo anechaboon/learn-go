@@ -1,12 +1,19 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
+	"github.com/joho/godotenv"
 )
 
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("load .env error")
+	}
 	engine := html.New("./views", ".html")
 	app := fiber.New(fiber.Config{
 		Views: engine,
@@ -23,6 +30,8 @@ func main() {
 
 	app.Post("/upload", uploadFile)
 	app.Get("test-html", testHTML)
+
+	app.Get("/config", getENV)
 
 	app.Listen(":8080")
 }
@@ -42,5 +51,16 @@ func uploadFile(c *fiber.Ctx) error {
 func testHTML(c *fiber.Ctx) error {
 	return c.Render("index", fiber.Map{
 		"Title": "Test HTML Rendering",
+	})
+}
+
+func getENV(c *fiber.Ctx) error {
+	if value, exist := os.LookupEnv("SECRET"); exist {
+		return c.JSON(fiber.Map{
+			"SECRET": value,
+		})
+	}
+	return  c.JSON(fiber.Map{
+		"SECRET": "defaultConfig",
 	})
 }
