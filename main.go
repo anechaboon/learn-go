@@ -26,6 +26,8 @@ const (
 	password = "mypassword"
 )
 
+var db *sql.DB
+
 func main() {
 
 	if err := godotenv.Load(); err != nil {
@@ -36,10 +38,11 @@ func main() {
     "password=%s dbname=%s sslmode=disable",
     host, port, username, password, databaseName)
 
-	db, err := sql.Open("postgres", psqlInfo)
+	sdb, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		log.Fatal("Error connecting to the database: ", err)
 	}
+	db = sdb
 
 	err = db.Ping()
 	if err != nil {
@@ -158,4 +161,19 @@ func login(c *fiber.Ctx) error {
 		"message": "Login Success",
 		"token": t,
 	})
+}
+
+type Product struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Price int    `json:"price"`
+}
+
+func createProduct (product *Product) error {
+	_, err := db.Exec("INSERT INTO products (name, price) VALUES ($1, $2)", product.Name, product.Price)
+	if err != nil {
+		log.Fatal("Error inserting product: ", err)
+	}
+
+	return err
 }
