@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -11,13 +12,42 @@ import (
 
 	jwtware "github.com/gofiber/jwt/v2"
 	"github.com/golang-jwt/jwt/v4"
+
+	"database/sql"
+
+	_ "github.com/lib/pq"
 )
 
+const (
+	host = "localhost"
+	port = 6543
+	databaseName = "mydatabase"
+	username = "myuser"
+	password = "mypassword"
+)
 
 func main() {
+
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("load .env error")
 	}
+
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+    "password=%s dbname=%s sslmode=disable",
+    host, port, username, password, databaseName)
+
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		log.Fatal("Error connecting to the database: ", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Error pinging the database: ", err)
+	}
+
+	fmt.Println("Successfully connected to the database!")
+	
 	engine := html.New("./views", ".html")
 	app := fiber.New(fiber.Config{
 		Views: engine,
@@ -63,7 +93,7 @@ func uploadFile(c *fiber.Ctx) error {
 func checkMiddleware(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	
+
 	if claims["role"] != "admin" {
 		return fiber.ErrUnauthorized
 	}
