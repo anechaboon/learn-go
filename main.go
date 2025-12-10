@@ -169,6 +169,33 @@ type Product struct {
 	Price int    `json:"price"`
 }
 
+func getProducts() ([]Product, error) {
+	rows, err := db.Query("SELECT id, name, price FROM products")
+	if err != nil {
+		log.Fatal("Error fetching products: ", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := []Product{}
+	for rows.Next() {
+		var product Product
+		err := rows.Scan(&product.ID, &product.Name, &product.Price)
+		if err != nil {
+			log.Fatal("Error scanning product: ", err)
+			return nil, err
+		}
+		products = append(products, product)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Fatal("Row error: ", err)
+		return nil, err
+	}
+	
+	return products, nil
+}
+
 func createProduct (product *Product) error {
 	_, err := db.Exec("INSERT INTO products (name, price) VALUES ($1, $2)", product.Name, product.Price)
 	if err != nil {
@@ -186,4 +213,23 @@ func getProduct(id int) (Product, error) {
 		return Product{}, err
 	}
 	return product, err
+}
+
+func updateProduct(id int, product *Product) (Product, error) {
+	var p Product
+	row := db.QueryRow("UPDATE products SET name = $1, price = $2 WHERE id = $3; RETURNING id, name, price;", product.Name, product.Price, id)
+	err := row.Scan(&p.ID, &p.Name, &p.Price)
+	if err != nil {
+		log.Fatal("Error updating product: ", err)
+		return Product{}, err
+	}
+	return p, err
+}
+
+func deleteProduct(id int) error {
+	_, err := db.Exec("DELETE FROM products WHERE id = $1", id)
+	if err != nil {
+		log.Fatal("Error deleting product: ", err)
+	}
+	return err
 }
